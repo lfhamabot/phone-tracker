@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Inventory Tracker</title>
+    <script src='https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js'></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            color: white;
+        }
+        
+        .stat-card .number {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .stat-card .label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .card h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 20px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .camera-section {
+            text-align: center;
+        }
+        
+        #video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+        
+        #canvas {
+            display: none;
+        }
+        
+        .preview-image {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .toggle-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .toggle-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        
+        .ocr-status {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .ocr-status.processing {
+            background: #fff3cd;
+        }
+        
+        .ocr-status.success {
+            background: #d4edda;
+        }
+        
+        .ocr-status.error {
+            background: #f8d7da;
+        }
+        
+        .phone-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .phone-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .phone-item .info h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .phone-item .info p {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .phone-item .profit {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .photo-gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .photo-gallery img {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlide 0.3s ease;
+        }
+        
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 22px;
+        }
+        
+        .profit-preview {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .profit-preview .amount {
+            font-size: 36px;
+            font-weight: bold;
+        }
+        
+        .profit-preview .label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .phone-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .phone-actions .btn {
+            flex: 1;
+            margin-bottom: 0;
+            padding: 10px;
+            font-size: 14px;
+        }
+        
+        .btn-sold {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn-edit {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-delete {
+            background: #ff6b6b;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 Phone Inventory</h1>
+            <p>Track your phone reselling business</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="number" id="totalPhones">0</div>
+                <div class="label">Total</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="pendingPhones">0</div>
+                <div class="label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="totalProfit">$0</div>
+                <div class="label">Profit</div>
+            </div>
+        </div>
+        
+        <!-- Main Menu -->
+        <div id="mainMenu" class="card">
+            <button class="btn btn-primary" onclick="startAddPhone()">
+                ➕ Add New Phone
+            </button>
+            <button class="btn btn-secondary" onclick="showInventory()">
+                📋 View Inventory
+            </button>
+        </div>
+        
+        <!-- Camera Section -->
+        <div id="cameraSection" class="card hidden">
+            <h2>📸 Take Photo of *#06# Screen</h2>
+            <div class="camera-section">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas"></canvas>
+                <img id="preview" class="preview-image hidden">
+                
+                <div id="cameraControls">
+                    <button class="btn btn-primary" onclick="capturePhoto()">
+                        📷 Capture
+                    </button>
+                    <button class="btn btn-secondary" onclick="uploadPhoto()">
+                        📁 Upload from Gallery
+                    </button>
+                    <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                </div>
+                
+                <div id="photoControls" class="hidden">
+                    <button class="btn btn-primary" onclick="retakePhoto()">
+                        🔄 Retake
+                    </button>
+                    <button class="btn btn-success" onclick="processPhoto()">
+                        ✓ Use This Photo
+                    </button>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="skipPhoto()">
+                ⏭️ Skip Photo (Manual Entry)
+            </button>
+        </div>
+        
+        <!-- OCR Processing -->
+        <div id="ocrSection" class="card hidden">
+            <h2>🔍 Processing Photo</h2>
+            <div class="ocr-status processing">
+                <div class="loading"></div>
+                <p>Reading IMEI from photo...</p>
+            </div>
+            <img id="ocrPreview" class="preview-image">
+        </div>
+        
+        <!-- More Photos Question -->
+        <div id="morePhotosSection" class="card hidden">
+            <h2>📸 Add More Photos?</h2>
+            <div class="photo-gallery" id="photoGallery"></div>
+            <button class="btn btn-primary" onclick="takeAnotherPhoto()">
+                ➕ Yes, Add Another
+            </button>
+            <button class="btn btn-success" onclick="proceedToForm()">
+                ✓ No, Continue to Form
+            </button>
+        </div>
+        
+        <!-- Phone Form -->
+        <div id="phoneForm" class="card hidden">
+            <h2>📝 Phone Details</h2>
+            
+            <div class="form-group">
+                <label>IMEI *</label>
+                <input type="text" id="imei" placeholder="351582855994762" maxlength="15">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Model *</label>
+                    <input type="text" id="model" placeholder="iPhone 15 Pro">
+                </div>
+                <div class="form-group">
+                    <label>Storage</label>
+                    <select id="storage">
+                        <option value="">Select...</option>
+                        <option value="64GB">64GB</option>
+                        <option value="128GB">128GB</option>
+                        <option value="256GB">256GB</option>
+                        <option value="512GB">512GB</option>
+                        <option value="1TB">1TB</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Color</label>
+                    <input type="text" id="color" placeholder="Space Gray">
+                </div>
+                <div class="form-group">
+                    <label>Condition *</label>
+                    <select id="condition">
+                        <option value="">Select...</option>
+                        <option value="A">Grade A - Like New</option>
+                        <option value="B">Grade B - Light Use</option>
+                        <option value="C">Grade C - Cracked/Spots</option>
+                        <option value="D">Grade D - Bad LCD</option>
+                        <option value="DOA">DOA - Dead/Parts</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Unlocked? *</label>
+                <div class="toggle-group">
+                    <div class="toggle-btn" onclick="setToggle('unlocked', true)" data-value="true">✓ Yes</div>
+                    <div class="toggle-btn" onclick="setToggle('unlocked', false)" data-value="false">✗ No</div>
+                </div>
+                <input type="hidden" id="unlocked">
+            </div>
+            
+            <div class="form-group">
+                <label>iCloud/FMI Status *</label>
+                <div class="toggle-group">
+                    <div class="toggle-btn" onclick="setToggle('icloud', false)" data-value="false">✓ Clean (OFF)</div>
+                    <div class="toggle-btn" onclick="setToggle('icloud', true)" data-value="true">✗ Locked (ON)</div>
+                </div>
+                <input type="hidden" id="icloud">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Carrier</label>
+                    <select id="carrier">
+                        <option value="">Select...</option>
+                        <option value="Unlocked">Unlocked</option>
+                        <option value="AT&T">AT&T</option>
+                        <option value="T-Mobile">T-Mobile</option>
+                        <option value="Verizon">Verizon</option>
+                        <option value="Sprint">Sprint</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Battery %</label>
+                    <input type="number" id="battery" placeholder="95" min="0" max="100">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cost Price ($) *</label>
+                    <input type="number" id="costPrice" placeholder="650" onchange="calculateProfit()">
+                </div>
+                <div class="form-group">
+                    <label>Selling Price ($)</label>
+                    <input type="number" id="sellingPrice" placeholder="800" onchange="calculateProfit()">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Suggested Selling Price</label>
+                <input type="text" id="suggestedPrice" readonly style="background: #f0f0f0;">
+            </div>
+            
+            <div class="form-group">
+                <label>Notes</label>
+                <input type="text" id="notes" placeholder="Any issues, repairs needed, etc.">
+            </div>
+            
+            <button class="btn btn-success" onclick="savePhone()">
+                ✓ FINISH - Add to Inventory
+            </button>
+            <button class="btn btn-secondary" onclick="cancelAdd()">
+                ✗ Cancel
+            </button>
+        </div>
+        
+        <!-- Inventory List -->
+        <div id="inventorySection" class="card hidden">
+            <h2>📋 Inventory</h2>
+            <div class="phone-list" id="phoneList"></div>
+            <button class="btn btn-primary" onclick="showMainMenu()">
+                ⬅️ Back to Menu
+            </button>
+        </div>
+        
+        <!-- Mark as Sold Modal -->
+        <div id="soldModal" class="modal-overlay hidden">
+            <div class="modal">
+                <h2>💰 Mark as Sold</h2>
+                
+                <div class="profit-preview">
+                    <div class="amount" id="previewProfit">$0</div>
+                    <div class="label">Net Profit</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Selling Price ($) *</label>
+                    <input type="number" id="soldPrice" placeholder="800" oninput="updateProfitPreview()">
+                </div>
+                
+                <div class="form-group">
+                    <label>Platform / Where Sold *</label>
+                    <select id="soldPlatform">
+                        <option value="">Select...</option>
+                        <option value="Atlas Mobile">Atlas Mobile</option>
+                        <option value="Swappa">Swappa</option>
+                        <option value="eBay">eBay</option>
+                        <option value="Facebook Marketplace">Facebook Marketplace</option>
+                        <option value="Local Buyer">Local Buyer (Person)</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Buyer Name (if local/person)</label>
+                    <input type="text" id="buyerName" placeholder="John Doe">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date Sold</label>
+                        <input type="date" id="soldDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Method</label>
+                        <select id="paymentMethod">
+                            <option value="">Select...</option>
+                            <option value="PayPal">PayPal</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Zelle">Zelle</option>
+                            <option value="Venmo">Venmo</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Platform Fee ($)</label>
+                        <input type="number" id="platformFee" placeholder="0" oninput="updateProfitPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Shipping Cost ($)</label>
+                        <input type="number" id="shippingCost" placeholder="0" oninput="updateProfitPreview()">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" id="soldNotes" placeholder="Any additional details...">
+                </div>
+                
+                <button class="btn btn-success" onclick="confirmSold()">
+                    ✓ Confirm Sale
+                </button>
+                <button class="btn btn-secondary" onclick="closeSoldModal()">
+                    ✗ Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // State management
+        let currentPhone = {
+            photos: [],
+            extractedIMEI: null
+        };
+        
+        let phones = JSON.parse(localStorage.getItem('phoneInventory') || '[]');
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStats();
+        });
+        
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.card').forEach(card => card.classList.add('hidden'));
+            document.getElementById(sectionId).classList.remove('hidden');
+        }
+        
+        function showMainMenu() {
+            showSection('mainMenu');
+            updateStats();
+        }
+        
+        // Add phone flow
+        function startAddPhone() {
+            currentPhone = { photos: [], extractedIMEI: null };
+            showSection('cameraSection');
+            startCamera();
+        }
+        
+        // Camera functions
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                document.getElementById('video').srcObject = stream;
+            } catch (err) {
+                console.log('Camera error:', err);
+                alert('Could not access camera. Please use upload option.');
+            }
+        }
+        
+        function stopCamera() {
+            const video = document.getElementById('video');
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        }
+        
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const preview = document.getElementById('preview');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            preview.src = canvas.toDataURL('image/jpeg');
+            preview.classList.remove('hidden');
+            video.classList.add('hidden');
+            
+            document.getElementById('cameraControls').classList.add('hidden');
+            document.getElementById('photoControls').classList.remove('hidden');
+            
+            stopCamera();
+        }
+        
+        function retakePhoto() {
+            document.getElementById('preview').classList.add('hidden');
+            document.getElementById('video').classList.remove('hidden');
+            document.getElementById('cameraControls').classList.remove('hidden');
+            document.getElementById('photoControls').classList.add('hidden');
+            startCamera();
+        }
+        
+        function uploadPhoto() {
+            document.getElementById('fileInput').click();
+        }
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = document.getElementById('preview');
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                    document.getElementById('video').classList.add('hidden');
+                    document.getElementById('cameraControls').classList.add('hidden');
+                    document.getElementById('photoControls').classList.remove('hidden');
+                    stopCamera();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function processPhoto() {
+            const preview = document.getElementById('preview');
+            currentPhone.photos.push(preview.src);
+            
+            showSection('ocrSection');
+            document.getElementById('ocrPreview').src = preview.src;
+            
+            // Run OCR
+            extractIMEI(preview.src);
+        }
+        
+        async function extractIMEI(imageSrc) {
+            try {
+                const result = await Tesseract.recognize(
+                    imageSrc,
+                    'eng',
+                    { logger: m => console.log(m) }
+                );
+                
+                const text = result.data.text;
+                console.log('OCR Text:', text);
+                
+                // Extract IMEI (15 digits)
+                const imeiMatch = text.match(/\d{15}/);
+                if (imeiMatch) {
+                    currentPhone.extractedIMEI = imeiMatch[0];
+                }
+                
+                showMorePhotosQuestion();
+            } catch (err) {
+                console.error('OCR Error:', err);
+                showMorePhotosQuestion();
+            }
+        }
+        
+        function showMorePhotosQuestion() {
+            showSection('morePhotosSection');
+            updatePhotoGallery();
+        }
+        
+        function updatePhotoGallery() {
+            const gallery = document.getElementById('photoGallery');
+            gallery.innerHTML = currentPhone.photos.map(src => 
+                `<img src="${src}" alt="Phone photo">`
+            ).join('');
+        }
+        
+        function takeAnotherPhoto() {
+            showSection('cameraSection');
+            retakePhoto();
+        }
+        
+        function proceedToForm() {
+            showSection('phoneForm');
+            if (currentPhone.extractedIMEI) {
+                document.getElementById('imei').value = currentPhone.extractedIMEI;
+            }
+        }
+        
+        function skipPhoto() {
+            showSection('phoneForm');
+        }
+        
+        // Form functions
+        function setToggle(field, value) {
+            document.getElementById(field).value = value;
+            document.querySelectorAll(`[onclick*="setToggle('${field}'"]`).forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === String(value));
+            });
+            calculateSuggestedPrice();
+        }
+        
+        function calculateSuggestedPrice() {
+            const cost = parseFloat(document.getElementById('costPrice').value) || 0;
+            const condition = document.getElementById('condition').value;
+            
+            let markup = 1.15; // Default 15% markup
+            
+            switch(condition) {
+                case 'A': markup = 1.20; break;
+                case 'B': markup = 1.15; break;
+                case 'C': markup = 1.10; break;
+                case 'D': markup = 1.05; break;
+                case 'DOA': markup = 1.00; break;
+            }
+            
+            const suggested = Math.round(cost * markup);
+            document.getElementById('suggestedPrice').value = suggested > 0 ? `$${suggested}` : '';
+        }
+        
+        function calculateProfit() {
+            const cost = parseFloat(document.getElementById('costPrice').value) || 0;
+            const selling = parseFloat(document.getElementById('sellingPrice').value) || 0;
+            calculateSuggestedPrice();
+        }
+        
+        function savePhone() {
+            const phone = {
+                id: Date.now(),
+                dateAdded: new Date().toISOString(),
+                photos: currentPhone.photos,
+                imei: document.getElementById('imei').value,
+                model: document.getElementById('model').value,
+                storage: document.getElementById('storage').value,
+                color: document.getElementById('color').value,
+                condition: document.getElementById('condition').value,
+                unlocked: document.getElementById('unlocked').value === 'true',
+                icloud: document.getElementById('icloud').value === 'true',
+                carrier: document.getElementById('carrier').value,
+                battery: document.getElementById('battery').value,
+                costPrice: parseFloat(document.getElementById('costPrice').value) || 0,
+                sellingPrice: parseFloat(document.getElementById('sellingPrice').value) || 0,
+                notes: document.getElementById('notes').value,
+                status: 'pending'
+            };
+            
+            if (!phone.imei || !phone.model || !phone.condition) {
+                alert('Please fill in required fields: IMEI, Model, Condition');
+                return;
+            }
+            
+            phones.push(phone);
+            localStorage.setItem('phoneInventory', JSON.stringify(phones));
+            
+            alert('Phone added successfully!');
+            showMainMenu();
+        }
+        
+        function cancelAdd() {
+            if (confirm('Cancel adding this phone?')) {
+                showMainMenu();
+            }
+        }
+        
+        // Inventory functions
+        let currentEditingPhone = null;
+        
+        function showInventory() {
+            showSection('inventorySection');
+            renderPhoneList();
+        }
+        
+        function renderPhoneList() {
+            const list = document.getElementById('phoneList');
+            
+            if (phones.length === 0) {
+                list.innerHTML = '<p style="text-align:center;color:#999;">No phones in inventory yet</p>';
+                return;
+            }
+            
+            // Only show unsold phones in active inventory
+            const activePhones = phones.filter(p => p.status !== 'sold');
+            
+            if (activePhones.length === 0) {
+                list.innerHTML = '<p style="text-align:center;color:#999;">All phones sold! 🎉</p>';
+                return;
+            }
+            
+            list.innerHTML = activePhones.slice().reverse().map(phone => {
+                return `
+                    <div class="phone-item" data-id="${phone.id}">
+                        <div class="info">
+                            <h3>${phone.model || 'Unknown'} ${phone.storage || ''}</h3>
+                            <p>IMEI: ${phone.imei} | Grade ${phone.condition} | ${phone.unlocked ? 'Unlocked' : 'Locked'}</p>
+                            <p>Cost: $${phone.costPrice} | Listed: $${phone.sellingPrice || 'Not set'}</p>
+                        </div>
+                        <div class="phone-actions">
+                            <button class="btn btn-sold" onclick="openSoldModal(${phone.id})">💰 Sold</button>
+                            <button class="btn btn-edit" onclick="editPhone(${phone.id})">✏️</button>
+                            <button class="btn btn-delete" onclick="deletePhone(${phone.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Mark as Sold functions
+        function openSoldModal(phoneId) {
+            currentEditingPhone = phones.find(p => p.id === phoneId);
+            if (!currentEditingPhone) return;
+            
+            // Set default date to today
+            document.getElementById('soldDate').value = new Date().toISOString().split('T')[0];
+            
+            // Set default selling price to listed price
+            document.getElementById('soldPrice').value = currentEditingPhone.sellingPrice || '';
+            
+            updateProfitPreview();
+            
+            document.getElementById('soldModal').classList.remove('hidden');
+        }
+        
+        function closeSoldModal() {
+            document.getElementById('soldModal').classList.add('hidden');
+            currentEditingPhone = null;
+            
+            // Clear form
+            document.getElementById('soldPrice').value = '';
+            document.getElementById('soldPlatform').value = '';
+            document.getElementById('buyerName').value = '';
+            document.getElementById('paymentMethod').value = '';
+            document.getElementById('platformFee').value = '';
+            document.getElementById('shippingCost').value = '';
+            document.getElementById('soldNotes').value = '';
+        }
+        
+        function updateProfitPreview() {
+            if (!currentEditingPhone) return;
+            
+            const sellingPrice = parseFloat(document.getElementById('soldPrice').value) || 0;
+            const platformFee = parseFloat(document.getElementById('platformFee').value) || 0;
+            const shippingCost = parseFloat(document.getElementById('shippingCost').value) || 0;
+            const costPrice = currentEditingPhone.costPrice || 0;
+            
+            const netProfit = sellingPrice - costPrice - platformFee - shippingCost;
+            
+            const profitElement = document.getElementById('previewProfit');
+            profitElement.textContent = `$${netProfit}`;
+            profitElement.style.color = netProfit >= 0 ? '#fff' : '#ff6b6b';
+        }
+        
+        function confirmSold() {
+            if (!currentEditingPhone) return;
+            
+            const sellingPrice = parseFloat(document.getElementById('soldPrice').value);
+            const platform = document.getElementById('soldPlatform').value;
+            
+            if (!sellingPrice || !platform) {
+                alert('Please fill in Selling Price and Platform');
+                return;
+            }
+            
+            // Update phone with sale info
+            currentEditingPhone.status = 'sold';
+            currentEditingPhone.actualSellingPrice = sellingPrice;
+            currentEditingPhone.soldPlatform = platform;
+            currentEditingPhone.buyerName = document.getElementById('buyerName').value;
+            currentEditingPhone.soldDate = document.getElementById('soldDate').value;
+            currentEditingPhone.paymentMethod = document.getElementById('paymentMethod').value;
+            currentEditingPhone.platformFee = parseFloat(document.getElementById('platformFee').value) || 0;
+            currentEditingPhone.shippingCost = parseFloat(document.getElementById('shippingCost').value) || 0;
+            currentEditingPhone.soldNotes = document.getElementById('soldNotes').value;
+            
+            // Calculate net profit
+            currentEditingPhone.netProfit = sellingPrice - currentEditingPhone.costPrice - currentEditingPhone.platformFee - currentEditingPhone.shippingCost;
+            
+            // Save to localStorage
+            localStorage.setItem('phoneInventory', JSON.stringify(phones));
+            
+            alert(`🎉 Phone sold! Net profit: $${currentEditingPhone.netProfit}`);
+            closeSoldModal();
+            renderPhoneList();
+            updateStats();
+        }
+        
+        function editPhone(phoneId) {
+            // TODO: Implement edit functionality
+            alert('Edit feature coming soon!');
+        }
+        
+        function deletePhone(phoneId) {
+            if (!confirm('Delete this phone from inventory?')) return;
+            
+            phones = phones.filter(p => p.id !== phoneId);
+            localStorage.setItem('phoneInventory', JSON.stringify(phones));
+            renderPhoneList();
+            updateStats();
+        }
+        
+        function updateStats() {
+            const total = phones.length;
+            const sold = phones.filter(p => p.status === 'sold').length;
+            const active = total - sold;
+            const totalProfit = phones.reduce((sum, p) => sum + (p.netProfit || 0), 0);
+            
+            document.getElementById('totalPhones').textContent = active;
+            document.getElementById('pendingPhones').textContent = sold;
+            document.getElementById('totalProfit').textContent = `$${totalProfit}`;
+        }
+        
+        // Add event listeners for sold modal inputs
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStats();
+            
+            // Sold modal listeners
+            ['soldPrice', 'platformFee', 'shippingCost'].forEach(id => {
+                document.getElementById(id)?.addEventListener('input', updateProfitPreview);
+            });
+        });
+        
+        // Listen for cost price changes to update suggested price
+        document.getElementById('costPrice')?.addEventListener('input', calculateSuggestedPrice);
+        document.getElementById('condition')?.addEventListener('change', calculateSuggestedPrice);
+        
+        // Close modal on overlay click
+        document.getElementById('soldModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'soldModal') closeSoldModal();
+        });
+    </script>
+</body>
+</html>

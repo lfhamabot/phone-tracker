@@ -1,0 +1,18 @@
+services:
+  phones-api:
+    image: node:18-alpine
+    container_name: phones-api
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+      - ./data:/app/data
+    command: sh -c "npm install && node server.js"
+    restart: unless-stopped
+    network_mode: bridge
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
